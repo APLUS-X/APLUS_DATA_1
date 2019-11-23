@@ -1,0 +1,289 @@
+#!/usr/bin/python
+# -*- coding: UTF-8 -*-
+import sys
+
+sys.path.append("/usr/local/etlScript/zibSchedule/etl/base")
+reload(sys)
+sys.setdefaultencoding('utf8')
+import ZibDB
+import commands
+import ZibUtil
+from source_config import databaseConfig
+from time import sleep
+import json
+import requests
+import datetime
+import threading
+import time
+
+now = datetime.datetime.now()
+logdate = (now - datetime.timedelta(days=1)).strftime('%Y-%m-%d')
+lastdate = (now - datetime.timedelta(days=10)).strftime('%Y-%m-%d')
+
+# sleep_time = 0.150
+url = 'https://apis.map.qq.com'
+token = ("KBEBZ-BEEC2-7IPU7-CLN4G-AZEJ2-I5BGH",
+         # "AD7BZ-VJHC2-OZTUD-CQEO3-L6JNS-RDF3X",  # Chen Shaohui 0
+         # "CMVBZ-OA6KW-PDMRC-RGXHG-P3FMV-XMBPD",  # Huang	1
+         #  "KBEBZ-BEEC2-7IPU7-CLN4G-AZEJ2-I5BGH",  # Chen	 2
+         #  "C7ZBZ-U7SKV-2T4PV-UFE5U-2DUQF-54F2T",  # QLIN	 3
+         #  "VWDBZ-4N23Q-FB456-GYI3Q-B7NG3-I4BAL",  # Chen Wenhao  4
+         #  "PJYBZ-KZWWI-FZMGT-52OZA-VCI47-LOB6Q",  # Wang	 5
+         #  "4CBBZ-N6I3I-S7YGX-53Q6L-6YE4E-MWFTB",  # Jian	 6
+         #  "BDZBZ-53ZRP-K35D7-VU3ES-2YMP5-DDFSD",  # Nick	 7
+         #  "QC5BZ-5K233-XJK3W-YNJEA-WJDCV-Z7FVB",  # HaoPeng      8
+         )
+
+unitId = {vUnitId}
+instId = sys.argv[1]
+
+latList = [22.53332,
+           22.55329,
+           22.54286,
+           22.72174,
+           22.543099]
+lngList = [
+    113.93041,
+    113.88308,
+    114.05956,
+    114.06031,
+    114.057868
+]
+proLogger = ZibUtil.ZibLogger()
+
+ZibDBObject = ZibDB.ZibDB()
+
+unitFromDb = databaseConfig['mgntWriteDb']
+
+
+def execIpSql(no):
+    sleep_time = 0.150
+    pSql = '''
+	with tmp_cnt as (
+	select count(1) total from temp.lbs_ip
+	)
+	select ip,logdate,'0' as new_flag
+      from temp.lbs_ip a
+	  join tmp_cnt b
+	    on 1=1
+     where rk between floor((total/5.0)*({no}-1)+1) and ceil((total/5.0)*({no}));
+	'''.format(no=no)
+
+    proLogger.write_log("本次执行SQL:%s" % pSql)
+    proLogger.write_db_log(instId, unitId, "本次执行SQL", pSql, 'N')
+
+    (returnFlag, returnString, ipSet) = ZibDBObject.execute_select_all(pSql, unitFromDb)
+    if returnFlag == 1:
+        # 异常返回 退出程序
+        proLogger.write_log("sql执行失败 退出程序 错误原因:%s" % returnString)
+        proLogger.write_db_log(instId, unitId, "sql执行失败 退出程序 错误原因:%s" % returnString, pSql, 'E')
+        exit(1)
+
+    token_index = 0
+
+    proLogger.write_log("使用token[%s]开始获取IP" % token[token_index])
+    proLogger.write_db_log(instId, unitId, "使用token[%s]开始获取IP" % token[token_index], '', 'N')
+
+    csvFileName = '/usr/local/etlScript/zibSchedule/etl/log/{unitId}_{no}.txt'.format(unitId=unitId, no=no)
+    csvFile = open(csvFileName, 'wb+')
+
+    for ip in ipSet:
+        factoryFlag = '0'
+        tok = token[token_index]
+        urlStr = url + '/ws/location/v1/ip?ip=' + ip[0] + '&key=' + tok
+        continueFlag = 0
+        for retryTime in range(0, 3):
+            try:
+                d = requests.get(urlStr).json()
+                break
+            except Exception as e:
+                proLogger.write_log(str(e))
+                proLogger.write_db_log(instId, unitId, str(e), '', 'E')
+                continueFlag += 1
+        if continueFlag == 3:
+            proLogger.write_log("重连3次失败")
+            proLogger.write_db_log(instId, unitId, "重连3次失败", '', 'E')
+            continue
+        if '此key每日调用量已达到上限' in d.get('message', ''):
+            proLogger.write_log("token数量用完,退出")
+            proLogger.write_db_log(instId, unitId, "token数量用完,退出", '', 'E')
+            break
+        # if '此key每秒请求量已达到上限' in d.get('message',''):
+        #	sleep_time += 0.06 # another 60 ms
+        #	if(sleep_time > 2.):
+        #		proLogger.write_log("睡眠时间大于2s，网络故障")
+        #		proLogger.write_db_log(instId,unitId,"睡眠时间大于2s，网络故障",'','E')
+        #		sleep_time = 0.150
+        # else:
+        #
+        #	token_index += 1
+        #
+        #	if token_index >= len(token):
+        #		proLogger.write_log("token数量用完,退出")
+        #		proLogger.write_db_log(instId,unitId,"token数量用完,退出",'','E')
+        #		break
+        #	tok = token[token_index]
+        #
+        #	proLogger.write_log("换Token[%s]"%tok)
+        #	proLogger.write_db_log(instId,unitId,"换Token[%s]"%tok,'','N')
+        # sleep(sleep_time)
+        # urlStr=url+'/ws/location/v1/ip?ip='+ip[0]+'&key='+tok
+        # d=requests.get(urlStr).json()
+        if d.get('result', {}).get('location', {}).get('lat', '') in latList and d.get('result', {}).get('location',
+                                                                                                         {}).get('lng',
+                                                                                                                 '') in lngList:
+            factoryFlag = '1'
+        else:
+            factoryFlag = '0'
+        newLine = '''{ip},{nation},{province},{city},{district},{lat},{lng},{firstDay},{factoryFlag},{etlTime}'''.format(
+            ip=ip[0]
+            , nation=d.get('result', {}).get('ad_info', {}).get('nation', '')
+            , province=d.get('result', {}).get('ad_info', {}).get('province', '')
+            , city=d.get('result', {}).get('ad_info', {}).get('city', '')
+            , district=d.get('result', {}).get('ad_info', {}).get('district', '')
+            , lat=d.get('result', {}).get('location', {}).get('lat', '')
+            , lng=d.get('result', {}).get('location', {}).get('lng', '')
+            , firstDay=ip[1]
+            , factoryFlag=factoryFlag
+            , etlTime=time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())) + '\n'
+        csvFile.write(newLine.encode('utf-8'))
+    csvFile.close()
+    csvFile = open(csvFileName)
+    copySql = '''
+	copy temp.o_lbs_info from STDIN with (FORMAT csv,DELIMITER ',',escape '\\',header false,quote '"',encoding 'UTF8')
+	'''
+    (returnFlag, returnString, returnSet) = ZibDBObject.execute_copy_expert(copySql, csvFile, unitFromDb)
+    if returnFlag == 1:
+        # 异常返回 退出程序
+        proLogger.write_log("sql执行失败:%s" % returnString)
+        proLogger.write_db_log(instId, unitId, "sql执行失败", copySql, 'E')
+        csvFile.close()
+        exit(1)
+    csvFile.close()
+
+
+proLogger.write_log("开始执行脚本")
+proLogger.write_db_log(instId, unitId, "开始执行脚本", '', 'N')
+
+vSql = '''
+drop table if exists temp.lbs_ip;
+create table temp.lbs_ip as
+select ip,logdate,'0' as new_flag,row_number()over(order by  order_num,logdate )rk from (
+
+select  a.ip,a.logdate,row_number()over(partition by a.ip order by a.logdate asc )rk,2 order_num
+ from dw.fact_app_daily_visit_user a
+ left join ods.o_lbs_info  b
+ on a.ip=b.ip
+ where b.ip is null
+ and a.ip is not null
+ and a.ip <>''
+union all
+select  a.ip,a.logdate,row_number()over(partition by a.ip order by a.logdate asc )rk,1 order_num
+ from ods.o_sbc_log a
+ left join ods.o_lbs_info  b
+ on a.ip=b.ip
+ where (b.ip is null  )
+  and a.ip is not null
+  and a.ip <>''
+  and a.logdate between '{lastdate}' and '{logdate}'
+union all
+select d.ip,d.first_day logdate,1 rk,3 order_num from ods.o_lbs_info d 
+where (d.lat ='' or d.lat is null)
+
+)tt
+where tt.rk = 1 
+order by 2 desc;
+truncate table temp.o_lbs_info;
+'''.format(logdate=logdate, lastdate=lastdate)
+
+proLogger.write_log("本次检索SQL")
+proLogger.write_db_log(instId, unitId, "本次检索SQL", vSql, 'N')
+
+(returnFlag, returnString, ipSet) = ZibDBObject.batch_execute_sql(vSql, unitFromDb)
+if returnFlag == 1:
+    # 异常返回 退出程序
+    proLogger.write_log("sql执行失败 退出程序 错误原因:%s" % returnString)
+    proLogger.write_db_log(instId, unitId, "sql执行失败 退出程序 错误原因:%s" % returnString, vSql, 'E')
+    exit(1)
+
+threads = []
+# 开5条线程
+
+proLogger.write_log("开5条线程")
+proLogger.write_db_log(instId, unitId, "开5条线程", '', 'N')
+
+for i in range(1, 6):
+    # 生成一个线程实例target=目标，args=参数
+    t = threading.Thread(target=execIpSql, args=(i,))
+    # 启动线程 调用run
+    t.start()
+    # 执行结果添加到列表
+    threads.append(t)
+
+for t in threads:
+    # 每循环一次等待一次
+    t.join()
+
+vInsertSql = '''
+begin;
+insert into ods.o_lbs_info
+select 
+tt.ip,
+tt.nation,
+tt.province,
+tt.city,
+tt.district,
+tt.lat,
+tt.lng,
+tt.first_day,
+tt.factory_flag,now() from (
+select a.ip,
+a.nation,
+a.province,
+a.city,
+a.district,
+a.lat,
+a.lng,
+a.first_day,
+a.factory_flag,row_number()over(partition by a.ip order by a.lat desc) rk 
+from temp.o_lbs_info a left join ods.o_lbs_info b on a.ip = b.ip where b.ip is null)tt 
+where rk =1 
+;
+commit;
+update ods.o_lbs_info 
+set 
+(nation,
+province,
+city,
+district,
+lat,
+lng,
+factory_flag)=
+(
+(bb.nation,
+bb.province,
+bb.city,
+bb.district,
+bb.lat,
+bb.lng,
+bb.factory_flag)
+)
+from 
+ temp.o_lbs_info bb
+where ods.o_lbs_info.ip=bb.ip
+  and (ods.o_lbs_info.lat='' or ods.o_lbs_info.lat is null)
+;
+commit;
+
+
+'''
+(returnFlag, returnString, returnValue) = ZibDBObject.batch_execute_sql(vInsertSql, unitFromDb)
+if returnFlag == 1:
+    # 异常返回 退出程序
+    proLogger.write_log("sql执行失败:%s" % returnString)
+    proLogger.write_db_log(instId, unitId, "sql执行失败%s" % returnString, vInsertSql, 'E')
+    exit(1)
+
+proLogger.write_log("程序结束")
+proLogger.write_db_log(instId, unitId, "程序结束", '', 'N')
+exit(0)
