@@ -1,0 +1,438 @@
+SELECT - 从数据库表中获取数据
+UPDATE - 更新数据库表中的数据
+DELETE - 从数据库表中删除数据
+INSERT INTO - 向数据库表中插入数据
+SQL 的数据定义语言 (DDL) 部分使我们有能力创建或删除表格。我们也可以定义索引（键），规定表之间的链接，以及施加表间的约束。
+SQL 中最重要的 DDL 语句:
+CREATE DATABASE - 创建新数据库
+ALTER DATABASE - 修改数据库
+CREATE TABLE - 创建新表
+ALTER TABLE - 变更（改变）数据库表
+DROP TABLE - 删除表
+CREATE INDEX - 创建索引（搜索键）
+DROP INDEX - 删除索引
+
+SELECT DISTINCT
+SELECT DISTINCT Company FROM Orders去重
+
+WHERE
+SELECT 列名称 FROM 表名称 WHERE 列 运算符 值
+
+BETWEEN	在某个范围内
+LIKE	搜索某种模式
+
+AND 和 OR 可在 WHERE 子语句中把两个或多个条件结合起来
+SELECT * FROM Persons WHERE (FirstName='Thomas' OR FirstName='William')
+AND LastName='Carter'
+
+ORDER BY 语句用于对结果集进行排序
+SELECT Company, OrderNumber FROM Orders ORDER BY Company
+
+INSERT INTO 表名称 VALUES (值1, 值2,....)
+INSERT INTO table_name (列1, 列2,...) VALUES (值1, 值2,....)
+
+UPDATE 表名称 SET 列名称 = 新值 WHERE 列名称 = 某值
+为 lastname 是 "Wilson" 的人添加 firstname：
+UPDATE Person SET FirstName = 'Fred' WHERE LastName = 'Wilson'
+
+DELETE FROM 表名称 WHERE 列名称 = 值
+
+TOP 子句用于规定要返回的记录的数目。
+语法：
+SELECT TOP number|percent column_name(s)
+FROM table_name
+SELECT * FROM Persons LIMIT 5
+SELECT TOP 2 * FROM Persons
+从上面的 "Persons" 表中选取 50% 的记录。
+我们可以使用下面的 SELECT 语句：
+SELECT TOP 50 PERCENT * FROM Persons
+
+LIKE 操作符用于在 WHERE 子句中搜索列中的指定模式。
+语法
+SELECT column_name(s)
+FROM table_name
+WHERE column_name LIKE pattern
+包含
+SELECT * FROM Persons
+WHERE City LIKE 'N%'
+不包含
+SELECT * FROM Persons
+WHERE City NOT LIKE '%lon%'
+
+通配符
+%	替代一个或多个字符
+_	仅替代一个字符
+[charlist]	字符列中的任何单一字符
+[^charlist] 或者 [!charlist]	不在字符列中的任何单一字符
+从上面的 "Persons" 表中选取居住的城市以 "A" 或 "L" 或 "N" 开头的人：
+SELECT * FROM Persons
+WHERE City LIKE '[ALN]%'  '[!ALN]%'或者不等于
+
+IN 操作符允许我们在 WHERE 子句中规定多个值。
+SELECT column_name(s)
+FROM table_name
+WHERE column_name IN (value1,value2,...)
+
+BETWEEN 操作符
+在 WHERE 子句中使用，作用是选取介于两个值之间的数据范围。
+语法
+SELECT column_name(s)
+FROM table_name
+WHERE column_name
+BETWEEN value1 AND value2
+如需使用上面的例子显示范围之外的人，请使用 NOT 操作符：
+SELECT * FROM Persons
+WHERE LastName
+NOT BETWEEN 'Adams' AND 'Carter'
+
+可以为列名称和表名称指定别名（Alias）。
+语法
+SELECT column_name(s)
+FROM table_name
+AS alias_name
+
+join 用于根据两个或多个表中的列之间的关系，从这些表中查询数据。
+SELECT Persons.LastName, Persons.FirstName, Orders.OrderNo
+FROM Persons, Orders
+WHERE Persons.Id_P = Orders.Id_P
+
+JOIN: 如果表中有至少一个匹配，则返回行
+LEFT JOIN: 即使右表中没有匹配，也从左表返回所有的行
+RIGHT JOIN: 即使左表中没有匹配，也从右表返回所有的行
+FULL JOIN: 只要其中一个表中存在匹配，就返回行
+
+INNER JOIN 关键字语法
+SELECT column_name(s)
+FROM table_name1
+INNER JOIN table_name2
+ON table_name1.column_name=table_name2.column_name
+
+LEFT JOIN 关键字语法
+SELECT column_name(s)
+FROM table_name1
+LEFT JOIN table_name2
+ON table_name1.column_name=table_name2.column_name
+
+RIGHT JOIN 关键字语法
+SELECT column_name(s)
+FROM table_name1
+RIGHT JOIN table_name2
+ON table_name1.column_name=table_name2.column_name
+
+FULL JOIN 关键字语法
+SELECT column_name(s)
+FROM table_name1
+FULL JOIN table_name2
+ON table_name1.column_name=table_name2.column_name
+
+UNION 操作符用于合并两个或多个 SELECT 语句的结果集。
+语法：
+SELECT column_name(s) FROM table_name1
+UNION
+SELECT column_name(s) FROM table_name2
+注释：默认地，UNION 操作符选取不同的值。如果允许重复的值，请使用 UNION ALL。
+SQL UNION ALL 语法
+SELECT column_name(s) FROM table_name1
+UNION ALL
+SELECT column_name(s) FROM table_name2
+另外，UNION 结果集中的列名总是等于 UNION 中第一个 SELECT 语句中的列名。
+
+SELECT INTO 语句可用于创建表的备份复件。
+所有的列插入新表：
+SELECT *
+INTO new_table_name [IN externaldatabase] 
+FROM old_tablename
+创建一个名为 "Persons_Order_Backup" 的新表，其中包含了从 Persons 和 Orders 两个表中取得的信息：
+SELECT Persons.LastName,Orders.OrderNo
+INTO Persons_Order_Backup
+FROM Persons
+INNER JOIN Orders
+ON Persons.Id_P=Orders.Id_P
+
+CREATE DATABASE 用于创建数据库。
+CREATE DATABASE database_name
+
+CREATE TABLE 语句用于创建数据库中的表。
+CREATE TABLE 表名称
+(
+列名称1 数据类型,
+列名称2 数据类型,
+列名称3 数据类型,
+....
+)
+
+约束用于限制加入表的数据的类型。
+创建表时规定约束（通过 CREATE TABLE 语句），或者在表创建之后也可以（通过 ALTER TABLE 语句）。
+NOT NULL 约束强制列不接受 NULL 值。
+UNIQUE 约束唯一标识数据库表中的每条记录。
+PRIMARY KEY 约束唯一标识数据库表中的每条记录。
+主键必须包含唯一的值。
+主键列不能包含 NULL 值。
+每个表都应该有一个主键，并且每个表只能有一个主键。
+一个表中的 FOREIGN KEY 指向另一个表中的 PRIMARY KEY。
+CHECK 约束用于限制列中的值的范围。
+如果对单个列定义 CHECK 约束，那么该列只允许特定的值。
+如果对一个表定义 CHECK 约束，那么此约束会在特定的列中对值进行限制。
+DEFAULT 约束用于向列中插入默认值。
+如果没有规定其他的值，那么会将默认值添加到所有的新记录。
+
+CREATE INDEX 语句用于在表中创建索引。
+在不读取整个表的情况下，索引使数据库应用程序可以更快地查找数据。
+CREATE INDEX 语法
+在表上创建一个简单的索引。允许使用重复的值：
+CREATE INDEX index_name
+ON table_name (column_name)
+
+CREATE UNIQUE INDEX 语法
+在表上创建一个唯一的索引。唯一的索引意味着两个行不能拥有相同的索引值。
+CREATE UNIQUE INDEX index_name
+ON table_name (column_name)
+
+ DROP 语句，可以轻松地删除索引、表和数据库。
+DROP INDEX 命令删除表格中的索引。
+DROP INDEX index_name ON table_name
+DROP TABLE 语句用于删除表（表的结构、属性以及索引也会被删除）：
+DROP TABLE 表名称
+DROP DATABASE 语句用于删除数据库：
+DROP DATABASE 数据库名称
+TRUNCATE TABLE 命令（仅仅删除表格中的数据）：
+TRUNCATE TABLE 表名称
+
+ALTER TABLE 语句用于在已有的表中添加、修改或删除列。
+添加列，请使用下列语法:
+ALTER TABLE table_name
+ADD column_name datatype
+删除表中的列，请使用下列语法：
+ALTER TABLE table_name
+DROP COLUMN column_name
+改变表中列的数据类型，请使用下列语法：
+ALTER TABLE table_name
+ALTER COLUMN column_name datatype
+
+Auto-increment 会在新记录插入表中时生成一个唯一的数字。
+
+VIEW（视图）
+视图是可视化的表。
+CREATE VIEW 语法：
+CREATE VIEW view_name AS
+SELECT column_name(s)
+FROM table_name
+WHERE condition
+DROP VIEW 命令来删除视图。
+SQL DROP VIEW Syntax
+DROP VIEW view_name
+
+SQL函数：
+NOW()		返回当前的日期和时间
+CURDATE()	返回当前的日期
+CURTIME()	返回当前的时间
+DATE()		提取日期或日期/时间表达式的日期部分
+EXTRACT()		返回日期/时间按的单独部分
+DATE_ADD()	给日期添加指定的时间间隔
+DATE_SUB()	从日期减去指定的时间间隔
+DATEDIFF()	返回两个日期之间的天数
+DATE_FORMAT()	用不同的格式显示日期/时间
+
+DATE - 格式 YYYY-MM-DD
+DATETIME - 格式: YYYY-MM-DD HH:MM:SS
+TIMESTAMP - 格式: YYYY-MM-DD HH:MM:SS
+YEAR - 格式 YYYY 或 YY
+
+NULL 值是遗漏的未知数据。
+默认地，表的列可以存放 NULL 值。
+不向该列添加值的情况下插入新记录或更新已有的记录。这意味着该字段将以 NULL 值保存。
+带有 NULL 值的记录
+SELECT LastName,FirstName,Address FROM Persons
+WHERE Address IS NULL
+不带有 NULL 值的记录
+SELECT LastName,FirstName,Address FROM Persons
+WHERE Address IS NOT NULL
+
+数据类型
+Text	用于文本或文本与数字的组合。最多 255 个字符。
+Memo	Memo 用于更大数量的文本。最多存储 65,536 个字符。 注释：无法对 memo 字段进行排序。不过它们是可搜索的。
+Byte	允许 0 到 255 的数字。	1 字节
+Integer	允许介于 -32,768 到 32,767 之间的数字。	2 字节
+Long	允许介于 -2,147,483,648 与 2,147,483,647 之间的全部数字	4 字节
+Single	单精度浮点。处理大多数小数。	4 字节
+Double	双精度浮点。处理大多数小数。	8 字节
+Currency	用于货币。支持 15 位的元，外加 4 位小数。 提示：您可以选择使用哪个国家的货币。	8 字节
+AutoNumber	AutoNumber 字段自动为每条记录分配数字，通常从 1 开始。	4 字节
+Date/Time	用于日期和时间	8 字节
+Yes/No	逻辑字段，可以显示为 Yes/No、True/False 或 On/Off。 在代码中，使用常量 True 和 False （等价于 1 和 0） 注释：Yes/No 字段中不允许 Null 值	1 比特
+Ole Object	可以存储图片、音频、视频或其他 BLOBs (Binary Large OBjects)	最多 1GB
+Hyperlink	包含指向其他文件的链接，包括网页。
+Lookup Wizard	允许你创建一个可从下列列表中进行选择的选项列表。	4 字节
+
+RDBMS
+现代的 SQL 服务器构建在 RDBMS 之上。
+DBMS - 数据库管理系统（Database Management System）
+数据库管理系统是一种可以访问数据库中数据的计算机程序。
+DBMS 使我们有能力在数据库中提取、修改或者存贮信息。
+不同的 DBMS 提供不同的函数供查询、提交以及修改数据。
+
+RDBMS - 关系数据库管理系统（Relational Database Management System）
+关系数据库管理系统 (RDBMS) 也是一种数据库管理系统，其数据库是根据数据间的关系来组织和访问数据的。
+
+内建 SQL 函数的语法是：
+SELECT function(列) FROM 表
+
+AVG 函数返回数值列的平均值。NULL 值不包括在计算中。
+AVG() 语法
+SELECT AVG(column_name) FROM table_name
+找到 OrderPrice 值高于 OrderPrice 平均值的客户。
+SELECT Customer FROM Orders
+WHERE OrderPrice>(SELECT AVG(OrderPrice) FROM Orders)
+
+COUNT() 函数返回匹配指定条件的行数。
+SELECT COUNT(column_name) FROM table_name
+COUNT(DISTINCT column_name) 函数返回指定列的不同值的数目：
+SELECT COUNT(DISTINCT column_name) FROM table_name
+
+FIRST() 函数
+FIRST() 函数返回指定的字段中第一个记录的值。
+提示：可使用 ORDER BY 语句对记录进行排序。
+
+LAST() 函数
+LAST() 函数返回指定的字段中最后一个记录的值。
+提示：可使用 ORDER BY 语句对记录进行排序。
+
+MAX() 函数
+MAX 函数返回一列中的最大值。NULL 值不包括在计算中。
+
+MIN() 函数
+MIN 函数返回一列中的最小值。NULL 值不包括在计算中。
+
+SUM() 函数
+SUM 函数返回数值列的总数（总额）。
+
+GROUP BY 语句
+GROUP BY 语句用于结合合计函数，根据一个或多个列对结果集进行分组。
+
+查找每个客户的总金额（总订单）。
+我们想要使用 GROUP BY 语句对客户进行组合。
+SELECT 客户,SUM(列) FROM 表名
+GROUP BY 客户
+
+HAVING 子句
+在 SQL 中增加 HAVING 子句原因是，WHERE 关键字无法与合计函数一起使用。
+HAVING 语法
+SELECT column_name, aggregate_function(column_name)
+FROM table_name
+WHERE column_name operator value
+GROUP BY column_name
+HAVING aggregate_function(column_name) operator value
+
+UCASE() 函数
+UCASE 函数把字段的值转换为大写。
+
+LCASE() 函数
+LCASE 函数把字段的值转换为小写。
+
+MID() 函数
+MID 函数用于从文本字段中提取字符。
+
+语法
+SELECT MID(column_name,start[,length]) FROM table_name
+column_name	必需。要提取字符的字段。
+start		必需。规定开始位置（起始值是 1）。
+length		可选。要返回的字符数。如果省略，则 MID() 函数返回剩余文本。
+
+LEN() 函数
+LEN 函数返回文本字段中值的长度。
+
+ROUND() 函数
+ROUND 函数用于把数值字段舍入为指定的小数位数。
+语法
+SELECT ROUND(column_name,decimals) FROM table_name
+column_name	必需。要舍入的字段。
+decimals		必需。规定要返回的小数位数。
+
+NOW() 函数
+NOW 函数返回当前的日期和时间。
+Sql Server 数据库，请使用 getdate() 函数来获得当前的日期时间。
+
+FORMAT() 函数
+FORMAT 函数用于对字段的显示进行格式化。
+语法
+SELECT FORMAT(column_name,format) FROM table_name
+column_name	必需。要格式化的字段。
+format		必需。规定格式。
+示例：
+SELECT ProductName, UnitPrice, FORMAT(Now(),'YYYY-MM-DD') as PerDate
+FROM Products
+
+SQL 语句
+
+AND / OR		
+	SELECT column_name(s) FROM table_name WHERE condition AND|OR condition
+ALTER TABLE (add column)	
+	ALTER TABLE table_name ADD column_name datatype
+ALTER TABLE (drop column)	
+	ALTER TABLE table_name DROP COLUMN column_name
+AS (alias for column)	
+	SELECT column_name AS column_alias FROM table_name
+AS (alias for table)	
+	SELECT column_name FROM table_name AS table_alias
+BETWEEN		
+	SELECT column_name(s) FROM table_name WHERE column_name BETWEEN value1 AND value2
+CREATE DATABASE	
+	CREATE DATABASE database_name
+CREATE INDEX	
+	CREATE INDEX index_name ON table_name (column_name)
+CREATE TABLE	
+	CREATE TABLE table_name ( column_name1 data_type, column_name2 data_type, ....... )
+CREATE UNIQUE INDEX	
+	CREATE UNIQUE INDEX index_name ON table_name (column_name)
+CREATE VIEW	
+	CREATE VIEW view_name AS SELECT column_name(s) FROM table_name WHERE condition
+DELETE FROM	
+	DELETE FROM tablename (Note: Deletes the entire table!!) _or DELETE FROM table_name WHERE condition
+DROP DATABASE	
+	DROP DATABASE database_name
+DROP INDEX	
+	DROP INDEX table_name.index_name
+DROP TABLE	
+	DROP TABLE table_name
+GROUP BY	
+	SELECT column_name1,SUM(column_name2) FROM table_name GROUP BY column_name1
+HAVING	
+	SELECT column_name1,SUM(column_name2) FROM table_name GROUP BY column_name1 HAVING SUM(column_name2) condition value
+IN	
+	SELECT column_name(s) FROM table_name WHERE column_name IN (value1,value2,..)
+INSERT INTO	
+	INSERT INTO tablename VALUES (value1, value2,....) _or INSERT INTO table_name (column_name1, column_name2,...) VALUES (value1, value2,....)
+LIKE	
+	SELECT column_name(s) FROM table_name WHERE column_name LIKE pattern
+ORDER BY
+	SELECT column_name(s) FROM table_name ORDER BY column_name [ASC|DESC]
+SELECT	
+	SELECT column_name(s) FROM table_name
+SELECT *	
+	SELECT * FROM table_name
+SELECT DISTINCT	
+	SELECT DISTINCT column_name(s) FROM table_name
+SELECT INTO (used to create backup copies of tables)	
+	SELECT * INTO newtable_name FROM original_table_name _or SELECT column_name(s) INTO new_table_name FROM original_table_name
+TRUNCATE TABLE (deletes only the data inside the table)	
+	TRUNCATE TABLE table_name
+UPDATE	
+	UPDATE table_name SET column_name=new_value [, column_name=new_value] WHERE column_name=some_value
+WHERE	
+	SELECT column_name(s) FROM table_name WHERE condition
+
+
+SELECT * FROM test.zib_tiktok_summary_1
+host="10.0.2.85", port="5432", database="bi", user="urr", password="urr"
+
+
+
+
+
+
+
+
+
+
+
+
