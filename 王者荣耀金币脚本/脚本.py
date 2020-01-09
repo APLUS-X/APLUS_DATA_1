@@ -26,7 +26,7 @@ def a_plus():
         sleep(14)
         aplus(2100, 20)  # 跳过
         print('点击跳过动画',end='->')
-        sleep(210)
+        sleep(180)
         a_plus()
 
 if __name__ == '__main__':
